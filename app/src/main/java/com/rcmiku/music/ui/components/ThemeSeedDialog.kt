@@ -153,7 +153,7 @@ fun ThemeSeedDialog(
                                             onThemeChange(_theme)
                                             Toast.makeText(
                                                 context,
-                                                "已切换为${themeOptions.find { it.first == value }?.second}, 重启生效",
+                                                "已切换为${themeOptions.find { it.first == value }?.second}",
                                                 Toast.LENGTH_SHORT
                                             ).show()
                                             expanded = false

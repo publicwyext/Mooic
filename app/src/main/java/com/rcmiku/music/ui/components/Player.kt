@@ -1,5 +1,6 @@
 package com.rcmiku.music.ui.components
 
+import android.annotation.SuppressLint
 import android.os.Bundle
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.basicMarquee
@@ -85,6 +86,7 @@ import com.rcmiku.ncmapi.model.SongAlbum
 import com.rcmiku.ncmapi.utils.json
 import kotlinx.coroutines.flow.map
 
+@SuppressLint("FlowOperatorInvokedInComposition")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Player(
@@ -165,23 +167,26 @@ fun Player(
                 }
             }
 
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp)
-                    .aspectRatio(1f)
-                    .clip(MaterialTheme.shapes.small)
-                    .clickable { onClick() }
-            ) {
-                AsyncImage(
-                    model = mediaMetadata.artworkUri,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = imageModifier
-                        .clip(MaterialTheme.shapes.small)
+
+            if(screenHeight >= 250) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
                         .fillMaxWidth()
-                )
+                        .padding(horizontal = 24.dp)
+                        .aspectRatio(1f)
+                        .clip(MaterialTheme.shapes.small)
+                        .clickable { onClick() }
+                ) {
+                    AsyncImage(
+                        model = mediaMetadata.artworkUri,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = imageModifier
+                            .clip(MaterialTheme.shapes.small)
+                            .fillMaxWidth()
+                    )
+                }
             }
 
             Column(
@@ -202,6 +207,17 @@ fun Player(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
+                            if(screenHeight <= 250){
+                                AsyncImage(
+                                    model = mediaMetadata.artworkUri,
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = imageModifier
+                                        .clip(MaterialTheme.shapes.small)
+                                        .size(80.dp,80.dp)
+                                        .clickable{ onClick() }
+                                )
+                            }
                             mediaMetadata.title?.let {
                                 Text(
                                     text = it.toString(),
