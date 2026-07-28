@@ -51,6 +51,7 @@ import com.rcmiku.music.constants.audioQualityKey
 import com.rcmiku.music.constants.autoSkipNextOnErrorKey
 import com.rcmiku.music.constants.dynamicThemeColorKey
 import com.rcmiku.music.constants.ncmCookieKey
+import com.rcmiku.music.constants.theme
 import com.rcmiku.music.constants.themeSeedColorKey
 import com.rcmiku.music.constants.unblockBaseUrlKey
 import com.rcmiku.music.constants.use40DpIconKey
@@ -84,6 +85,7 @@ fun SettingsScreen(navController: NavHostController) {
     var useDynamicThemeColor by rememberPreference(dynamicThemeColorKey, false)
     var themeSeed by rememberEnumPreference(themeSeedColorKey, defaultValue = AppThemeSeed.PURPLE)
     var autoSkipNextOnError by rememberPreference(autoSkipNextOnErrorKey, false)
+    var theme by rememberPreference(theme, 2)
     var ncmCookie by rememberPreference(ncmCookieKey, "")
     var apiBaseUrl by rememberPreference(apiBaseUrlKey, "https://ncm-api.prod.gbclstudio.cn")
     var unblockBaseUrl by rememberPreference(unblockBaseUrlKey, "https://unlock.depresskid.top")
@@ -275,8 +277,10 @@ fun SettingsScreen(navController: NavHostController) {
             currentSeed = themeSeed,
             dynamicColorAvailable = dynamicColorAvailable,
             dynamicColorEnabled = useDynamicThemeColor,
+            theme = theme,
             onDismiss = { showThemeSeedDialog = false },
             onDynamicColorChange = { useDynamicThemeColor = it },
+            onThemeChange = { theme = it },
             onSeedSelected = { themeSeed = it }
         )
     }
