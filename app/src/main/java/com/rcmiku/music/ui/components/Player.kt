@@ -64,6 +64,7 @@ import coil3.compose.AsyncImage
 import com.rcmiku.music.LocalPlayerController
 import com.rcmiku.music.LocalPlayerState
 import com.rcmiku.music.constants.MediaSessionConstants
+import com.rcmiku.music.constants.watchMode
 import com.rcmiku.music.data.favoriteSongIdsDatastore
 import com.rcmiku.music.ui.icons.Album
 import com.rcmiku.music.ui.icons.Artist
@@ -80,6 +81,7 @@ import com.rcmiku.music.ui.navigation.AlbumNav
 import com.rcmiku.music.ui.navigation.ArtistNav
 import com.rcmiku.music.utils.getItemShape
 import com.rcmiku.music.utils.makeTimeString
+import com.rcmiku.music.utils.rememberPreference
 import com.rcmiku.ncmapi.model.Artist
 import com.rcmiku.ncmapi.model.Song
 import com.rcmiku.ncmapi.model.SongAlbum
@@ -135,6 +137,7 @@ fun Player(
     }
 
     val screenHeight = LocalConfiguration.current.screenHeightDp
+    val watchMode by rememberPreference(watchMode, false)
 
     Surface(
         modifier = modifier
@@ -168,7 +171,7 @@ fun Player(
             }
 
 
-            if(screenHeight >= 250) {
+            if(!watchMode) {
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
@@ -207,7 +210,7 @@ fun Player(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            if(screenHeight <= 250){
+                            if(watchMode){
                                 AsyncImage(
                                     model = mediaMetadata.artworkUri,
                                     contentDescription = null,

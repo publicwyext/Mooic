@@ -90,4 +90,6 @@
     <string name="reset_default">重置默认</string>
     <string name="server_settings">服务器设置</string>
     <string name="click_to_login">点击登录</string>
+    <string name="watch_mode">开启手表模式</string>
+    <string name="watch_mode_describe">避免小屏设备上播放界面图片过大</string>
 </resources>

@@ -42,6 +42,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import coil3.decode.ImageSource
 import com.rcmiku.music.R
 import com.rcmiku.music.constants.SettingItemCorner
 import com.rcmiku.music.constants.SettingItemHeight
@@ -55,6 +56,7 @@ import com.rcmiku.music.constants.theme
 import com.rcmiku.music.constants.themeSeedColorKey
 import com.rcmiku.music.constants.unblockBaseUrlKey
 import com.rcmiku.music.constants.use40DpIconKey
+import com.rcmiku.music.constants.watchMode
 import com.rcmiku.music.ui.components.Dialog
 import com.rcmiku.music.ui.components.SongQualityDialog
 import com.rcmiku.music.ui.components.ThemeSeedDialog
@@ -68,6 +70,7 @@ import com.rcmiku.music.ui.icons.PlayPause
 import com.rcmiku.music.ui.icons.SkipNext
 import com.rcmiku.music.ui.icons.UserRound
 import com.rcmiku.music.ui.icons.VipUser
+import com.rcmiku.music.ui.icons.Watch
 import com.rcmiku.music.ui.navigation.Screen
 import com.rcmiku.music.ui.theme.AppThemeSeed
 import com.rcmiku.music.utils.getItemShape
@@ -86,6 +89,7 @@ fun SettingsScreen(navController: NavHostController) {
     var themeSeed by rememberEnumPreference(themeSeedColorKey, defaultValue = AppThemeSeed.PURPLE)
     var autoSkipNextOnError by rememberPreference(autoSkipNextOnErrorKey, false)
     var theme by rememberPreference(theme, 2)
+    var watchMode by rememberPreference(watchMode, false)
     var ncmCookie by rememberPreference(ncmCookieKey, "")
     var apiBaseUrl by rememberPreference(apiBaseUrlKey, "https://ncm-api.prod.gbclstudio.cn")
     var unblockBaseUrl by rememberPreference(unblockBaseUrlKey, "https://unlock.depresskid.top")
@@ -134,6 +138,18 @@ fun SettingsScreen(navController: NavHostController) {
                 Spacer(Modifier.width(12.dp))
             },
             onClick = { use40DpIcon = !use40DpIcon }
+        ),
+        SettingItemData(
+            title = stringResource(R.string.watch_mode),
+            subtitle = stringResource(R.string.watch_mode_describe),
+            imageVector = Watch,
+            trailingContent = {
+                Switch(
+                    checked = watchMode,
+                    onCheckedChange = { watchMode = it }
+                )
+                Spacer(Modifier.width(12.dp))
+            }
         ),
         SettingItemData(
             title = stringResource(R.string.audio_quality),
