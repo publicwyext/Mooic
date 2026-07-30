@@ -151,15 +151,20 @@ fun Lyric(
                         currentIndex = index
                         if (autoScrollEnabled) {
                             coroutineScope.launch {
-                                val targetIndex = maxOf(index - 2, 0)
-                                val visibleItem = listState.layoutInfo.visibleItemsInfo
-                                    .firstOrNull { it.index == targetIndex }
-                                if (visibleItem == null) {
-                                    listState.scrollToItem(targetIndex)
-                                } else {
+                                val layoutInfo = listState.layoutInfo
+                                val viewportHeight = layoutInfo.viewportEndOffset - layoutInfo.viewportStartOffset
+                                val desiredOffset = (viewportHeight * 0.3f).toInt()
+                                val visibleItem = layoutInfo.visibleItemsInfo.firstOrNull { it.index == index }
+                                if (visibleItem != null) {
+                                    val scrollAmount = visibleItem.offset - desiredOffset
                                     listState.animateScrollBy(
-                                        visibleItem.offset.toFloat(),
+                                        scrollAmount.toFloat(),
                                         animationSpec = tween(400, easing = EaseInOutCubic)
+                                    )
+                                } else {
+                                    listState.scrollToItem(
+                                        index = index,
+                                        scrollOffset = -desiredOffset
                                     )
                                 }
                             }
