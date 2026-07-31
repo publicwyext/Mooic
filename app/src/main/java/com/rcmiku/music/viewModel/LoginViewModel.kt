@@ -115,7 +115,7 @@ class LoginViewModel @Inject constructor() : ViewModel() {
 
         viewModelScope.launch {
             _uiState.value = LoginUiState.Loading
-            val result = AccountApi.loginCellphoneWithCookie(phone, captcha, _selectedCountryCode.value.dialCode)
+            val result = AccountApi.loginCellphoneWithCookie(phone, captcha, _selectedCountryCode.value.dialCode.replace("+", ""))
             if (result.isSuccess) {
                 val rawCookie = result.getOrNull()?.cookie ?: ""
                 if (rawCookie.isNotEmpty()) {
