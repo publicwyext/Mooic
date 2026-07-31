@@ -42,6 +42,7 @@ import com.rcmiku.music.MainActivity
 import com.rcmiku.music.R
 import com.rcmiku.music.constants.MediaSessionConstants
 import com.rcmiku.music.constants.audioQualityKey
+import com.rcmiku.music.constants.userIdKye
 import com.rcmiku.music.constants.use40DpIconKey
 import com.rcmiku.music.data.favoriteSongIdsDatastore
 import com.rcmiku.music.extensions.updateMediaItemUri
@@ -74,6 +75,7 @@ class PlaybackService : MediaSessionService() {
     private var favoriteSongIds: List<Long> by mutableStateOf(emptyList())
     private val use40DpIcon by preference(this, use40DpIconKey, false)
     private val audioQuality by enumPreference(this, audioQualityKey, SongLevel.STANDARD)
+    private val userId by preference(this, userIdKye, 0L)
     private var scrobbleJob: Job? = null
     private var scrobbleState: ScrobbleState? = null
 
@@ -229,7 +231,7 @@ class PlaybackService : MediaSessionService() {
 
     private fun toggleLike(like: Boolean, songId: Long) {
         scope.launch {
-            AccountApi.songLike(like, songId).onSuccess {
+            AccountApi.songLike(like, songId, userId).onSuccess {
                 if (like) {
                     FavoriteSongIdsUtil.addSongId(applicationContext, songId)
                 } else {

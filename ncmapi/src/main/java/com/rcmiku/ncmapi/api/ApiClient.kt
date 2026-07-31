@@ -1,5 +1,7 @@
 package com.rcmiku.ncmapi.api
 
+import android.util.Log
+import com.rcmiku.ncmapi.model.ApiCodeResponse
 import com.rcmiku.ncmapi.utils.CookieProvider
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
@@ -62,16 +64,52 @@ suspend inline fun <reified T> apiGet(path: String, params: Map<String, Any> = e
     }
 }
 
+data class ApiResponseWithCookie<T>(
+    val data: T,
+    val cookie: String
+)
+
+suspend inline fun <reified T> apiGetWithCookie(path: String, params: Map<String, Any> = emptyMap()): Result<ApiResponseWithCookie<T>> {
+    return try {
+        val response = apiClient.request("$API_BASE_URL$path") {
+            method = HttpMethod.Get
+            params.forEach { (key, value) ->
+                parameter(key, value)
+            }
+        }
+        if (response.status.isSuccess()) {
+            val body = response.bodyAsText()
+            val allCookies = response.headers.getAll("Set-Cookie").orEmpty().joinToString("; ")
+                .ifEmpty { body }
+            try {
+                val result = Json {
+                    ignoreUnknownKeys = true
+                    isLenient = true
+                    coerceInputValues = true
+                }.decodeFromString<T>(body)
+                Result.success(ApiResponseWithCookie(data = result, cookie = allCookies))
+            } catch (e: Exception) {
+                Result.success(ApiResponseWithCookie(data = ApiCodeResponse(code = 200) as T, cookie = allCookies))
+            }
+        } else {
+            Result.failure(Exception("API error: ${response.status}"))
+        }
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+}
+
 suspend inline fun <reified T> apiPost(path: String, body: Map<String, Any> = emptyMap()): Result<T> {
     return try {
         val response = apiClient.request("$API_BASE_URL$path") {
             method = HttpMethod.Post
             contentType(ContentType.Application.FormUrlEncoded)
             body.forEach { (key, value) ->
-                // form parameters
+
             }
             setBody(body.map { "${it.key}=${it.value}" }.joinToString("&"))
         }
+        // CookieProvider.cookie
         if (response.status.isSuccess()) {
             val responseBody = response.bodyAsText()
             val result = kotlinx.serialization.json.Json {

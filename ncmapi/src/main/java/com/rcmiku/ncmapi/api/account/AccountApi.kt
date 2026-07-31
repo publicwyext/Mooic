@@ -1,8 +1,12 @@
 package com.rcmiku.ncmapi.api.account
 
 import com.rcmiku.ncmapi.api.apiGet
+import com.rcmiku.ncmapi.api.apiGetWithCookie
+import com.rcmiku.ncmapi.api.ApiResponseWithCookie
+import com.rcmiku.ncmapi.api.apiPost
 import com.rcmiku.ncmapi.api.player.SongLevel
 import com.rcmiku.ncmapi.model.*
+import com.rcmiku.ncmapi.utils.CookieProvider
 
 object AccountApi {
 
@@ -29,11 +33,15 @@ object AccountApi {
     suspend fun favoriteSongLikeChange(): Result<ApiCodeResponse> =
         Result.success(ApiCodeResponse(code = 200))
 
-    suspend fun songLike(like: Boolean, songId: Long): Result<ApiCodeResponse> =
-        apiGet("/like", mapOf("id" to songId, "like" to like))
-
-    suspend fun songDislike(songId: Long): Result<ApiCodeResponse> =
-        apiGet("/like", mapOf("id" to songId, "like" to false))
+    suspend fun songLike(like: Boolean, songId: Long, userId: Long): Result<ApiCodeResponse> =
+        apiPost("/like", mapOf(
+            "cookie" to CookieProvider.cookie,
+            "id" to songId,
+            "userid" to userId,
+            "like" to like,
+            "timestamp" to System.currentTimeMillis(),
+            "realIP" to "36.57.150.1"
+        ))
 
     suspend fun userPlaylist(
         userId: Long,
@@ -73,17 +81,20 @@ object AccountApi {
         songIds: List<Long>,
         manipulateType: PlayManipulateType = PlayManipulateType.ADD
     ): Result<ApiCodeResponse> {
+        val timestamp = System.currentTimeMillis()
         return if (manipulateType == PlayManipulateType.ADD) {
-            apiGet("/playlist/track/add", mapOf(
+            apiGet("/playlist/tracks", mapOf(
                 "op" to "add",
                 "pid" to playlistId,
-                "tracks" to songIds.joinToString(",")
+                "tracks" to songIds.joinToString(","),
+                "timestamp" to timestamp
             ))
         } else {
-            apiGet("/playlist/track/delete", mapOf(
+            apiGet("/playlist/tracks", mapOf(
                 "op" to "del",
                 "pid" to playlistId,
-                "tracks" to songIds.joinToString(",")
+                "tracks" to songIds.joinToString(","),
+                "timestamp" to timestamp
             ))
         }
     }
@@ -121,6 +132,21 @@ object AccountApi {
                 put("timestamp", System.currentTimeMillis())
             }
         )
+
+    suspend fun qrKey(): Result<QrKeyResponse> =
+        apiGet("/login/qr/key", mapOf("timestamp" to System.currentTimeMillis()))
+
+    suspend fun qrCreate(key: String): Result<QrCreateResponse> =
+        apiGet("/login/qr/create", mapOf("key" to key, "qrimg" to true, "timestamp" to System.currentTimeMillis()))
+
+    suspend fun qrCheck(key: String): Result<QrCheckResponse> =
+        apiGet("/login/qr/check", mapOf("key" to key, "timestamp" to System.currentTimeMillis()))
+
+    suspend fun sentCaptcha(phone: String, ctcode: String): Result<ApiCodeResponse> =
+        apiGet("/captcha/sent", mapOf("phone" to phone, "ctcode" to ctcode))
+
+    suspend fun loginCellphoneWithCookie(phone: String, captcha: String, ctcode: String): Result<ApiResponseWithCookie<ApiCodeResponse>> =
+        apiGetWithCookie("/login/cellphone", mapOf("phone" to phone, "captcha" to captcha, "countrycode" to ctcode))
 
     @kotlinx.serialization.Serializable
     data class UserPlaylistRawResponse(

@@ -45,6 +45,7 @@ import androidx.navigation.NavHostController
 import coil3.compose.AsyncImage
 import com.rcmiku.music.LocalPlayerController
 import com.rcmiku.music.R
+import com.rcmiku.music.constants.userIdKye
 import com.rcmiku.music.data.favoriteSongIdsDatastore
 import com.rcmiku.music.extensions.addToPlaylist
 import com.rcmiku.music.extensions.insertToPlaylist
@@ -60,6 +61,7 @@ import com.rcmiku.music.ui.navigation.ArtistNav
 import com.rcmiku.music.utils.FavoriteSongIdsUtil
 import com.rcmiku.music.utils.CoverImageSize
 import com.rcmiku.music.utils.makeTimeString
+import com.rcmiku.music.utils.rememberPreference
 import com.rcmiku.music.utils.toCoverImageUrl
 import com.rcmiku.ncmapi.api.account.AccountApi
 import com.rcmiku.ncmapi.model.Song
@@ -81,6 +83,7 @@ fun SongMenuBottomSheet(
     val mediaController = LocalPlayerController.current.controller
     val songIds by context.favoriteSongIdsDatastore.data.map { it.songIdsList }
         .collectAsState(emptyList())
+    val userId by rememberPreference(userIdKye, 0L)
 
     val scope = rememberCoroutineScope()
 
@@ -304,7 +307,7 @@ fun SongMenuBottomSheet(
                                     song?.id?.let { songId ->
                                         scope.launch {
                                             val like = songId !in songIds
-                                            AccountApi.songLike(like, songId).onSuccess {
+                                            AccountApi.songLike(like, songId, userId).onSuccess {
                                                 if (like)
                                                     FavoriteSongIdsUtil.addSongId(context, songId)
                                                 else
