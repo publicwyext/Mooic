@@ -109,7 +109,8 @@ suspend inline fun <reified T> apiGetWithCookie(path: String, params: Map<String
     }
 }
 
-private fun extractBodyCookie(body: String): String {
+@PublishedApi
+internal fun extractBodyCookie(body: String): String {
     return try {
         val element = Json {
             ignoreUnknownKeys = true
@@ -127,7 +128,8 @@ private fun extractBodyCookie(body: String): String {
     }
 }
 
-private fun encodeForm(value: Any): String =
+@PublishedApi
+internal fun encodeForm(value: Any): String =
     URLEncoder.encode(value.toString(), "UTF-8")
 
 suspend inline fun <reified T> apiPost(path: String, body: Map<String, Any> = emptyMap()): Result<T> {
