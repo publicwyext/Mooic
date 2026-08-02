@@ -18,6 +18,9 @@ import io.ktor.http.contentType
 import io.ktor.http.isSuccess
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.jsonPrimitive
 
 var API_BASE_URL = "https://ncm-api.prod.gbclstudio.cn"
 var UNBLOCK_BASE_URL = "https://unlock.depresskid.top"
@@ -78,9 +81,15 @@ suspend inline fun <reified T> apiGetWithCookie(path: String, params: Map<String
             }
         }
         if (response.status.isSuccess()) {
+            val headerCookies = response.headers.getAll("Set-Cookie").orEmpty()
+                .map { it.substringBefore(';').trim() }
+                .filter { it.contains('=') }
             val body = response.bodyAsText()
-            val allCookies = response.headers.getAll("Set-Cookie").orEmpty().joinToString("; ")
-                .ifEmpty { body }
+            val allCookies = if (headerCookies.isNotEmpty()) {
+                headerCookies.joinToString("; ")
+            } else {
+                extractBodyCookie(body)
+            }
             try {
                 val result = Json {
                     ignoreUnknownKeys = true
@@ -96,6 +105,24 @@ suspend inline fun <reified T> apiGetWithCookie(path: String, params: Map<String
         }
     } catch (e: Exception) {
         Result.failure(e)
+    }
+}
+
+private fun extractBodyCookie(body: String): String {
+    return try {
+        val element = Json {
+            ignoreUnknownKeys = true
+            isLenient = true
+            coerceInputValues = true
+        }.parseToJsonElement(body)
+        val cookie = (element as? JsonObject)?.get("cookie")
+        if (cookie is JsonPrimitive && cookie.content.isNotBlank()) {
+            cookie.jsonPrimitive.content
+        } else {
+            ""
+        }
+    } catch (e: Exception) {
+        ""
     }
 }
 
