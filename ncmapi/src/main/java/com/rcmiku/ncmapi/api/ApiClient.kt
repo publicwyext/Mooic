@@ -21,6 +21,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonPrimitive
+import java.net.URLEncoder
 
 var API_BASE_URL = "https://ncm-api.prod.gbclstudio.cn"
 var UNBLOCK_BASE_URL = "https://unlock.depresskid.top"
@@ -126,15 +127,15 @@ private fun extractBodyCookie(body: String): String {
     }
 }
 
+private fun encodeForm(value: Any): String =
+    URLEncoder.encode(value.toString(), "UTF-8")
+
 suspend inline fun <reified T> apiPost(path: String, body: Map<String, Any> = emptyMap()): Result<T> {
     return try {
         val response = apiClient.request("$API_BASE_URL$path") {
             method = HttpMethod.Post
             contentType(ContentType.Application.FormUrlEncoded)
-            body.forEach { (key, value) ->
-
-            }
-            setBody(body.map { "${it.key}=${it.value}" }.joinToString("&"))
+            setBody(body.map { "${encodeForm(it.key)}=${encodeForm(it.value)}" }.joinToString("&"))
         }
         // CookieProvider.cookie
         if (response.status.isSuccess()) {
