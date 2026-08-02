@@ -50,7 +50,9 @@ class MainActivity : ComponentActivity() {
                     LocalPlayerController provides playerController,
                     LocalPlayerState provides playerState
                 ) {
-                    MainScreen()
+                    MainScreen(
+                        context = this
+                    )
                 }
             }
         }

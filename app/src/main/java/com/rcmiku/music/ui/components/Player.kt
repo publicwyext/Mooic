@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -101,7 +102,8 @@ fun Player(
     onClick: () -> Unit = {},
     onContainerClick: () -> Unit = {},
     onPositionUpdate: (Long) -> Unit,
-    navController: NavHostController
+    navController: NavHostController,
+    isTablet: Boolean = false
 ) {
 
     BackHandler {
@@ -174,21 +176,31 @@ fun Player(
             if(!watchMode) {
                 Box(
                     contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 24.dp)
-                        .aspectRatio(1f)
+                    modifier = Modifier.align(Alignment.CenterHorizontally).then(
+                        if (isTablet) {
+                            Modifier
+                                .sizeIn(maxWidth = 280.dp, maxHeight = 280.dp)
+                                .aspectRatio(1f)
+                        } else {
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 24.dp)
+                                .aspectRatio(1f)
+                        }
+                    )
                         .clip(MaterialTheme.shapes.small)
                         .clickable { onClick() }
                 ) {
                     AsyncImage(
+                        alignment = Alignment.Center,
                         model = mediaMetadata.artworkUri,
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
                         modifier = imageModifier
                             .clip(MaterialTheme.shapes.small)
-                            .fillMaxWidth()
+                            .fillMaxSize()
                     )
+                    Spacer(Modifier.height(20.dp))
                 }
             }
 

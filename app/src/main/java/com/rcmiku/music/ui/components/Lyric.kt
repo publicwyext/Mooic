@@ -69,7 +69,8 @@ fun Lyric(
     imageModifier: Modifier = Modifier,
     mediaMetadata: MediaMetadata,
     onBackPressed: () -> Unit = {},
-    lyricViewModel: LyricViewModel = hiltViewModel()
+    lyricViewModel: LyricViewModel = hiltViewModel(),
+    isTablet: Boolean = false
 ) {
     val mediaController = LocalPlayerController.current.controller
     val playerState = LocalPlayerState.current
@@ -100,7 +101,7 @@ fun Lyric(
 
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainer,
-        modifier = Modifier.fillMaxHeight()
+        modifier = if(!isTablet) Modifier.fillMaxHeight() else modifier.fillMaxHeight()
     ) {
         Column(modifier = Modifier.statusBarsPadding()) {
             Row(
@@ -110,33 +111,35 @@ fun Lyric(
                     .clip(MaterialTheme.shapes.small)
                     .clickable { onBackPressed() }
             ) {
-                AsyncImage(
-                    model = mediaMetadata.artworkUri,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = imageModifier
-                        .size(MediaItemHeight)
-                        .clip(MaterialTheme.shapes.small)
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .then(modifier)
-                ) {
-                    Text(
-                        text = mediaMetadata.title.toString(),
-                        maxLines = 1,
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.basicMarquee()
+                if(!isTablet) {
+                    AsyncImage(
+                        model = mediaMetadata.artworkUri,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = imageModifier
+                            .size(MediaItemHeight)
+                            .clip(MaterialTheme.shapes.small)
                     )
-                    Text(
-                        text = mediaMetadata.artist.toString(),
-                        maxLines = 1,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.basicMarquee()
-                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .then(modifier)
+                    ) {
+                        Text(
+                            text = mediaMetadata.title.toString(),
+                            maxLines = 1,
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.basicMarquee()
+                        )
+                        Text(
+                            text = mediaMetadata.artist.toString(),
+                            maxLines = 1,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.basicMarquee()
+                        )
+                    }
                 }
             }
 
