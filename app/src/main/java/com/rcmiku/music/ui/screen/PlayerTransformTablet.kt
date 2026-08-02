@@ -2,6 +2,7 @@ package com.rcmiku.music.ui.screen
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.fadeIn
@@ -43,6 +44,10 @@ fun PlayerTransformTablet(
 
     var show by remember {
         mutableIntStateOf(MINI_PLAYER)
+    }
+
+    BackHandler(enabled = show != MINI_PLAYER) {
+        show = MINI_PLAYER
     }
 
     SharedTransitionLayout(
