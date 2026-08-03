@@ -50,10 +50,6 @@ fun PlayerTransformTablet(
         show = MINI_PLAYER
     }
 
-    BackHandler(enabled = show != MINI_PLAYER) {
-        show = MINI_PLAYER
-    }
-
     SharedTransitionLayout(
         modifier = Modifier
             .background(MaterialTheme.colorScheme.surfaceContainer)

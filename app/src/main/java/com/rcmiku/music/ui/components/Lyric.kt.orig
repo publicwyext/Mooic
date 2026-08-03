@@ -96,7 +96,7 @@ fun Lyric(
         currentMediaId?.let { lyricViewModel.fetchLyric(it.toLong()) }
     }
 
-    if (!isTablet) BackHandler { onBackPressed() }
+    BackHandler { onBackPressed() }
     KeepScreenOn()
 
     Surface(
