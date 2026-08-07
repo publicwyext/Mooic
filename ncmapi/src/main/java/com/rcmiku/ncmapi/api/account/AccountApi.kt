@@ -1,6 +1,7 @@
 package com.rcmiku.ncmapi.api.account
 
 import com.rcmiku.ncmapi.api.apiGet
+import com.rcmiku.ncmapi.api.apiPost
 import com.rcmiku.ncmapi.api.player.SongLevel
 import com.rcmiku.ncmapi.model.*
 
@@ -29,11 +30,28 @@ object AccountApi {
     suspend fun favoriteSongLikeChange(): Result<ApiCodeResponse> =
         Result.success(ApiCodeResponse(code = 200))
 
-    suspend fun songLike(like: Boolean, songId: Long): Result<ApiCodeResponse> =
-        apiGet("/like", mapOf("id" to songId, "like" to like))
+    suspend fun songLike(like: Boolean, songId: Long, userId: Long): Result<ApiCodeResponse> {
+        if (userId <= 0) {
+            return Result.failure(IllegalStateException("未登录或用户 ID 无效"))
+        }
 
-    suspend fun songDislike(songId: Long): Result<ApiCodeResponse> =
-        apiGet("/like", mapOf("id" to songId, "like" to false))
+        return apiPost<ApiCodeResponse>(
+            "/song/like",
+            mapOf("id" to songId, "uid" to userId, "like" to like)
+        ).mapCatching {
+            if (it.code == 200) {
+                it
+            } else {
+                val reason = it.message?.takeIf(String::isNotBlank)
+                    ?: it.msg?.takeIf(String::isNotBlank)
+                    ?: "服务端返回业务码 ${it.code}"
+                throw IllegalStateException(reason)
+            }
+        }
+    }
+
+    suspend fun songDislike(songId: Long, userId: Long): Result<ApiCodeResponse> =
+        songLike(false, songId, userId)
 
     suspend fun userPlaylist(
         userId: Long,

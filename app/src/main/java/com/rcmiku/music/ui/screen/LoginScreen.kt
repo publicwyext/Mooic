@@ -7,6 +7,7 @@ import android.webkit.CookieManager
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.widget.Toast
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -33,6 +34,7 @@ import com.rcmiku.music.ui.navigation.Screen
 import com.rcmiku.music.utils.getDeviceID
 import com.rcmiku.music.utils.rememberPreference
 import com.rcmiku.ncmapi.utils.CookieKeys
+import com.rcmiku.ncmapi.utils.CookieProvider
 import com.rcmiku.ncmapi.utils.json
 import com.rcmiku.ncmapi.utils.parseCookieString
 
@@ -90,14 +92,20 @@ fun LoginScreen(
                                 url: String?,
                             ) {
                                 if (url?.startsWith("https://y.music.163.com/m") == true) {
-                                    val cookie = CookieManager.getInstance().getCookie(url)
-                                    val cookieMap =
-                                        parseCookieString(cookie.trimIndent()).toMutableMap()
-                                    cookieMap[CookieKeys.DEVICE_ID] = getDeviceID()
-                                    cookieMap[CookieKeys.OS_VER] = Build.VERSION.RELEASE
-                                    cookieMap[CookieKeys.MOBILE_NAME] = Build.MODEL
+                                    val cookieManager = CookieManager.getInstance()
+                                    val cookieMap = cookieManager.collectLoginCookies(url)
+                                    if (!cookieMap.containsKey(CookieKeys.MUSIC_U)) {
+                                        Toast.makeText(
+                                            context,
+                                            "登录状态尚未生效，请完成登录后稍等片刻",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                        return
+                                    }
+                                    cookieMap.addDeviceInfo()
                                     ncmCookie = json.encodeToString(cookieMap)
-                                    webView?.clearCache(true)
+                                    CookieProvider.init(cookieMap)
+                                    view?.clearCache(true)
                                     navController.navigate(Screen.Home.route)
                                 }
                             }
@@ -117,4 +125,22 @@ fun LoginScreen(
     }
 }
 
+private fun CookieManager.collectLoginCookies(currentUrl: String): MutableMap<String, String> {
+    flush()
+    val cookieUrls = linkedSetOf(
+        "https://music.163.com",
+        "https://y.music.163.com",
+        currentUrl
+    )
+    return buildMap {
+        cookieUrls.forEach { url ->
+            getCookie(url)?.let { putAll(parseCookieString(it)) }
+        }
+    }.toMutableMap()
+}
 
+private fun MutableMap<String, String>.addDeviceInfo() {
+    this[CookieKeys.DEVICE_ID] = getDeviceID()
+    this[CookieKeys.OS_VER] = Build.VERSION.RELEASE
+    this[CookieKeys.MOBILE_NAME] = Build.MODEL
+}

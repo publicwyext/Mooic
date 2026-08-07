@@ -43,12 +43,14 @@ import com.rcmiku.music.R
 import com.rcmiku.music.constants.MediaSessionConstants
 import com.rcmiku.music.constants.audioQualityKey
 import com.rcmiku.music.constants.use40DpIconKey
+import com.rcmiku.music.constants.userIdKye
 import com.rcmiku.music.data.favoriteSongIdsDatastore
 import com.rcmiku.music.extensions.updateMediaItemUri
 import com.rcmiku.music.utils.FavoriteSongIdsUtil
 import com.rcmiku.music.utils.dataStore
 import com.rcmiku.music.utils.enumPreference
 import com.rcmiku.music.utils.preference
+import com.rcmiku.music.utils.reportLikeFailure
 import com.rcmiku.ncmapi.api.account.AccountApi
 import com.rcmiku.ncmapi.api.player.SongLevel
 import kotlinx.coroutines.CoroutineScope
@@ -73,6 +75,7 @@ class PlaybackService : MediaSessionService() {
     private var mediaSession: MediaSession? = null
     private var favoriteSongIds: List<Long> by mutableStateOf(emptyList())
     private val use40DpIcon by preference(this, use40DpIconKey, false)
+    private val userId by preference(this, userIdKye, 0L)
     private val audioQuality by enumPreference(this, audioQualityKey, SongLevel.STANDARD)
     private var scrobbleJob: Job? = null
     private var scrobbleState: ScrobbleState? = null
@@ -229,12 +232,14 @@ class PlaybackService : MediaSessionService() {
 
     private fun toggleLike(like: Boolean, songId: Long) {
         scope.launch {
-            AccountApi.songLike(like, songId).onSuccess {
+            AccountApi.songLike(like, songId, userId).onSuccess {
                 if (like) {
                     FavoriteSongIdsUtil.addSongId(applicationContext, songId)
                 } else {
                     FavoriteSongIdsUtil.removeSongId(applicationContext, songId)
                 }
+            }.onFailure { error ->
+                reportLikeFailure(applicationContext, like, songId, userId, error)
             }
         }
     }

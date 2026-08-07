@@ -173,7 +173,7 @@ fun PlaylistScreen(
                                 OutlinedButton(
                                     onClick = {
                                         playlistInfoState?.subscribed?.let {
-                                            playlistScreenViewModel.playlistSub(isSub = it)
+                                            playlistScreenViewModel.playlistSub(isSub = !it)
                                         }
                                     },
                                     contentPadding = ButtonDefaults.ButtonWithIconContentPadding,
