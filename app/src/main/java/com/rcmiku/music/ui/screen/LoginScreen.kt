@@ -1,6 +1,8 @@
 package com.rcmiku.music.ui.screen
 
 import android.annotation.SuppressLint
+import android.os.Build
+import android.webkit.CookieManager
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -57,6 +59,10 @@ import com.rcmiku.music.constants.ncmCookieKey
 import com.rcmiku.music.viewModel.LoginUiState
 import com.rcmiku.music.viewModel.LoginViewModel
 import com.rcmiku.music.utils.rememberPreference
+import com.rcmiku.ncmapi.utils.CookieKeys
+import com.rcmiku.ncmapi.utils.CookieProvider
+import com.rcmiku.ncmapi.utils.json
+import com.rcmiku.ncmapi.utils.parseCookieString
 
 @SuppressLint("SetJavaScriptEnabled")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -323,4 +329,24 @@ fun LoginScreen(
             }
         }
     }
+}
+
+private fun CookieManager.collectLoginCookies(currentUrl: String): MutableMap<String, String> {
+    flush()
+    val cookieUrls = linkedSetOf(
+        "https://music.163.com",
+        "https://y.music.163.com",
+        currentUrl
+    )
+    return buildMap {
+        cookieUrls.forEach { url ->
+            getCookie(url)?.let { putAll(parseCookieString(it)) }
+        }
+    }.toMutableMap()
+}
+
+private fun MutableMap<String, String>.addDeviceInfo() {
+    this[CookieKeys.DEVICE_ID] = getDeviceID()
+    this[CookieKeys.OS_VER] = Build.VERSION.RELEASE
+    this[CookieKeys.MOBILE_NAME] = Build.MODEL
 }

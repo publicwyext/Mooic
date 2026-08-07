@@ -2,7 +2,10 @@ package com.rcmiku.ncmapi.api
 
 import android.util.Log
 import com.rcmiku.ncmapi.model.ApiCodeResponse
+import com.rcmiku.ncmapi.utils.CookieKeys
 import com.rcmiku.ncmapi.utils.CookieProvider
+import com.rcmiku.ncmapi.utils.NeteaseClientConfig
+import com.rcmiku.ncmapi.utils.json as apiJson
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
@@ -11,10 +14,12 @@ import io.ktor.client.request.header
 import io.ktor.client.request.parameter
 import io.ktor.client.request.request
 import io.ktor.client.request.setBody
+import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.HttpMethod
 import io.ktor.http.contentType
+import io.ktor.http.encodeURLParameter
 import io.ktor.http.isSuccess
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
@@ -28,15 +33,13 @@ var UNBLOCK_BASE_URL = "https://unlock.depresskid.top"
 
 val apiClient = HttpClient(OkHttp) {
     install(ContentNegotiation) {
-        json(Json {
-            ignoreUnknownKeys = true
-            isLenient = true
-            coerceInputValues = true
-        })
+        json(apiJson)
     }
     defaultRequest {
-        header("User-Agent", "JetMelo/1.0")
+        header("User-Agent", NeteaseClientConfig.USER_AGENT)
         header("Accept", "application/json")
+        header("Cache-Control", "no-cache, no-store, max-age=0")
+        header("Pragma", "no-cache")
         val cookie = CookieProvider.cookie
         if (cookie.isNotEmpty()) {
             header("Cookie", cookie)
@@ -45,26 +48,20 @@ val apiClient = HttpClient(OkHttp) {
 }
 
 suspend inline fun <reified T> apiGet(path: String, params: Map<String, Any> = emptyMap()): Result<T> {
-    return try {
+    return runCatching {
         val response = apiClient.request("$API_BASE_URL$path") {
             method = HttpMethod.Get
-            params.forEach { (key, value) ->
+            val finalParams = params.toMutableMap().apply {
+                put("timestamp", System.currentTimeMillis())
+                putIfAbsent("randomCNIP", true)
+            }
+            finalParams.forEach { (key, value) ->
                 parameter(key, value)
             }
         }
-        if (response.status.isSuccess()) {
-            val body = response.bodyAsText()
-            val result = kotlinx.serialization.json.Json {
-                ignoreUnknownKeys = true
-                isLenient = true
-                coerceInputValues = true
-            }.decodeFromString<T>(body)
-            Result.success(result)
-        } else {
-            Result.failure(Exception("API error: ${response.status}"))
-        }
-    } catch (e: Exception) {
-        Result.failure(e)
+        val responseBody = response.bodyAsText()
+        response.requireSuccess(responseBody)
+        apiJson.decodeFromString<T>(responseBody)
     }
 }
 
@@ -133,25 +130,39 @@ internal fun encodeForm(value: Any): String =
     URLEncoder.encode(value.toString(), "UTF-8")
 
 suspend inline fun <reified T> apiPost(path: String, body: Map<String, Any> = emptyMap()): Result<T> {
-    return try {
+    return runCatching {
         val response = apiClient.request("$API_BASE_URL$path") {
             method = HttpMethod.Post
             contentType(ContentType.Application.FormUrlEncoded)
-            setBody(body.map { "${encodeForm(it.key)}=${encodeForm(it.value)}" }.joinToString("&"))
+            parameter("timestamp", System.currentTimeMillis())
+            parameter("_", System.nanoTime())
+            parameter("randomCNIP", true)
+            val finalBody = body.toMutableMap().apply {
+                CookieProvider.getCookieMap()[CookieKeys.CSRF]
+                    ?.takeIf { it.isNotEmpty() }
+                    ?.let { put("csrf_token", it) }
+            }
+            setBody(
+                finalBody.entries.joinToString("&") { (key, value) ->
+                    "${key.encodeURLParameter()}=${value.toString().encodeURLParameter()}"
+                }
+            )
         }
-        // CookieProvider.cookie
-        if (response.status.isSuccess()) {
-            val responseBody = response.bodyAsText()
-            val result = kotlinx.serialization.json.Json {
-                ignoreUnknownKeys = true
-                isLenient = true
-                coerceInputValues = true
-            }.decodeFromString<T>(responseBody)
-            Result.success(result)
-        } else {
-            Result.failure(Exception("API error: ${response.status}"))
-        }
-    } catch (e: Exception) {
-        Result.failure(e)
+        val responseBody = response.bodyAsText()
+        response.requireSuccess(responseBody)
+        apiJson.decodeFromString<T>(responseBody)
+    }
+}
+
+@PublishedApi
+internal fun HttpResponse.requireSuccess(responseBody: String) {
+    if (!status.isSuccess()) {
+        val description = status.description
+            .takeUnless { it.isBlank() || it.equals("unknown", ignoreCase = true) }
+            ?.let { " $it" }
+            .orEmpty()
+        throw Exception("HTTP ${status.value}$description: ${responseBody.take(500)}")
+    }
+}
     }
 }

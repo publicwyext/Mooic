@@ -19,6 +19,7 @@ import com.rcmiku.music.utils.UserAgentUtil
 import com.rcmiku.music.utils.dataStore
 import com.rcmiku.ncmapi.api.API_BASE_URL
 import com.rcmiku.ncmapi.api.UNBLOCK_BASE_URL
+import com.rcmiku.ncmapi.utils.CookieKeys
 import com.rcmiku.ncmapi.utils.CookieProvider
 import com.rcmiku.ncmapi.utils.FileProvider
 import com.rcmiku.ncmapi.utils.UserAgentProvider
@@ -50,8 +51,14 @@ class JetMeloApp : Application(), SingletonImageLoader.Factory {
                 .map { it[ncmCookieKey] }
                 .distinctUntilChanged()
                 .collect { ncmCookie ->
-                    if (ncmCookie?.isNotEmpty() == true)
-                        CookieProvider.init(json.decodeFromString(ncmCookie))
+                    val cookieMap = ncmCookie
+                        ?.takeIf { it.isNotEmpty() }
+                        ?.let { runCatching { json.decodeFromString<Map<String, String>>(it) }.getOrNull() }
+                    if (cookieMap?.containsKey(CookieKeys.MUSIC_U) == true) {
+                        CookieProvider.init(cookieMap)
+                    } else {
+                        CookieProvider.clear()
+                    }
                 }
         }
         applicationScope.launch {

@@ -62,6 +62,7 @@ import com.rcmiku.music.utils.FavoriteSongIdsUtil
 import com.rcmiku.music.utils.CoverImageSize
 import com.rcmiku.music.utils.makeTimeString
 import com.rcmiku.music.utils.rememberPreference
+import com.rcmiku.music.utils.reportLikeFailure
 import com.rcmiku.music.utils.toCoverImageUrl
 import com.rcmiku.ncmapi.api.account.AccountApi
 import com.rcmiku.ncmapi.model.Song
@@ -80,10 +81,10 @@ fun SongMenuBottomSheet(
     val bottomSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var openSongListBottomSheet by rememberSaveable { mutableStateOf(false) }
     val context = LocalContext.current
+    val userId by rememberPreference(userIdKye, 0L)
     val mediaController = LocalPlayerController.current.controller
     val songIds by context.favoriteSongIdsDatastore.data.map { it.songIdsList }
         .collectAsState(emptyList())
-    val userId by rememberPreference(userIdKye, 0L)
 
     val scope = rememberCoroutineScope()
 
@@ -315,6 +316,8 @@ fun SongMenuBottomSheet(
                                                         context,
                                                         songId
                                                     )
+                                            }.onFailure { error ->
+                                                reportLikeFailure(context, like, songId, userId, error)
                                             }
                                         }
                                     }

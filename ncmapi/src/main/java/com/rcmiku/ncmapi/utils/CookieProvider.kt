@@ -6,11 +6,19 @@ object CookieProvider {
         private set
 
     fun init(cookieMap: Map<String, String>) {
-        this.cookieMap = cookieMap
-        this.cookie = cookieMap.entries.joinToString("; ") { (k, v) -> "$k=$v" }
+        this.cookieMap = buildMap {
+            putAll(cookieMap)
+            putAll(NeteaseClientConfig.cookieOverrides)
+        }
+        this.cookie = this.cookieMap.entries.joinToString("; ") { (k, v) -> "$k=$v" }
+    }
+
+    fun clear() {
+        cookieMap = emptyMap()
+        cookie = ""
     }
 
     fun getCookieMap(): Map<String, String> = cookieMap
 
-    fun isLoggedIn(): Boolean = cookieMap.isNotEmpty() && cookieMap.containsKey("MUSIC_U")
+    fun isLoggedIn(): Boolean = cookieMap.containsKey(CookieKeys.MUSIC_U)
 }

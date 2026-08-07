@@ -17,7 +17,19 @@ object PlaylistApi {
         apiGet("/toplist")
 
     suspend fun playlistSub(id: Long, isSub: Boolean): Result<ApiCodeResponse> {
-        val t = if (isSub) 1 else 0
-        return apiGet("/playlist/subscribe", mapOf("id" to id, "t" to t))
+        val t = if (isSub) 1 else 2
+        return apiGet<ApiCodeResponse>(
+            "/playlist/subscribe",
+            mapOf("id" to id, "t" to t)
+        ).mapCatching {
+            if (it.code == 200) {
+                it
+            } else {
+                val reason = it.message?.takeIf(String::isNotBlank)
+                    ?: it.msg?.takeIf(String::isNotBlank)
+                    ?: "服务端返回业务码 ${it.code}"
+                throw IllegalStateException(reason)
+            }
+        }
     }
 }
