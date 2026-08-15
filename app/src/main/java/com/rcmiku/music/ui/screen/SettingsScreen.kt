@@ -1,5 +1,7 @@
 package com.rcmiku.music.ui.screen
 
+import android.content.Context
+import android.content.pm.PackageManager
 import android.os.Build
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
@@ -37,6 +39,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -82,6 +85,7 @@ import com.rcmiku.ncmapi.api.player.SongLevel
 @Composable
 fun SettingsScreen(navController: NavHostController) {
     val uriHandler = LocalUriHandler.current
+    val context = LocalContext.current
 
     var use40DpIcon by rememberPreference(use40DpIconKey, false)
     var audioQuality by rememberEnumPreference(audioQualityKey, defaultValue = SongLevel.STANDARD)
@@ -89,7 +93,7 @@ fun SettingsScreen(navController: NavHostController) {
     var themeSeed by rememberEnumPreference(themeSeedColorKey, defaultValue = AppThemeSeed.PURPLE)
     var autoSkipNextOnError by rememberPreference(autoSkipNextOnErrorKey, false)
     var theme by rememberPreference(theme, 2)
-    var watchMode by rememberPreference(watchMode, false)
+    var watchMode by rememberPreference(watchMode, isWatch(context))
     var ncmCookie by rememberPreference(ncmCookieKey, "")
     var apiBaseUrl by rememberPreference(apiBaseUrlKey, "https://ncm-api.prod.gbclstudio.cn")
     var unblockBaseUrl by rememberPreference(unblockBaseUrlKey, "https://unlock.depresskid.top")
@@ -410,3 +414,13 @@ data class SettingItemData(
     val onClick: (() -> Unit)? = null,
     val trailingContent: @Composable (() -> Unit)? = null
 )
+
+fun isWatch(context: Context): Boolean {
+    val packageManager = context.packageManager
+    if (packageManager.hasSystemFeature(PackageManager.FEATURE_WATCH)) return true
+
+    val displayMetrics = context.resources.displayMetrics
+    val dpi = displayMetrics.densityDpi
+    val smallestWidthDp = context.resources.configuration.smallestScreenWidthDp
+    return dpi >= 240 && smallestWidthDp in 1..360
+}
