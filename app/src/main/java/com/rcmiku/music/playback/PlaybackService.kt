@@ -78,7 +78,6 @@ class PlaybackService : MediaSessionService() {
     private val use40DpIcon by preference(this, use40DpIconKey, false)
     private val userId by preference(this, userIdKye, 0L)
     private val audioQuality by enumPreference(this, audioQualityKey, SongLevel.STANDARD)
-    private val userId by preference(this, userIdKye, 0L)
     private var scrobbleJob: Job? = null
     private var scrobbleState: ScrobbleState? = null
 

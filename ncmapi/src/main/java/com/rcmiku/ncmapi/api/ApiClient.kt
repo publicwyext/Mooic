@@ -164,5 +164,3 @@ internal fun HttpResponse.requireSuccess(responseBody: String) {
         throw Exception("HTTP ${status.value}$description: ${responseBody.take(500)}")
     }
 }
-    }
-}
