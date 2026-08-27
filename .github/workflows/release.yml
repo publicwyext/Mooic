@@ -19,6 +19,13 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK components
+        run: |
+          sdkmanager "platforms;android-35" "build-tools;35.0.0" "platform-tools"
+
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
@@ -40,6 +47,11 @@ jobs:
         id: apk
         run: |
           APK_PATH=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
+          if [ -z "$APK_PATH" ]; then
+            echo "No APK found!"
+            find app/build/outputs -type f || true
+            exit 1
+          fi
           echo "path=$APK_PATH" >> $GITHUB_OUTPUT
           echo "Found: $APK_PATH"
           ls -lh "$APK_PATH"
