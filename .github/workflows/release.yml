@@ -32,7 +32,9 @@ jobs:
           echo "Detected versionName=$VERSION_NAME versionCode=$VERSION_CODE"
 
       - name: Build unsigned release APK
-        run: ./gradlew assembleRelease --no-daemon --stacktrace
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon --stacktrace
 
       - name: Find APK
         id: apk
