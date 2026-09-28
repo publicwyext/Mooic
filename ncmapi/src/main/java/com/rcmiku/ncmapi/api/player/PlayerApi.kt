@@ -1,6 +1,5 @@
 package com.rcmiku.ncmapi.api.player
 
-import com.rcmiku.ncmapi.api.API_BASE_URL
 import com.rcmiku.ncmapi.api.UNBLOCK_BASE_URL
 import com.rcmiku.ncmapi.api.apiClient
 import com.rcmiku.ncmapi.api.apiGet
@@ -44,24 +43,11 @@ object PlayerApi {
         val realId = parsed.id
         DebugLog.append("resolve song=$realId restricted=${parsed.shouldUseApiUnblock()}")
 
-        return if (parsed.shouldUseApiUnblock()) {
-            val unblockResult = tryUnblockUrl(realId)
-            if (unblockResult.hasPlayableUrl()) {
-                return unblockResult
-            }
-
-            tryApiEnhancedMatchUrl(realId)
-        } else {
-            val apiResult = apiGet<SongUrlResponse>(
-                "/song/url/v1",
-                mapOf("id" to realId, "level" to songLevel.value)
-            )
-            if (apiResult.hasPlayableUrl()) {
-                apiResult
-            } else {
-                tryUnblockUrl(realId)
-            }
-        }
+        val officialResult = apiGet<SongUrlResponse>(
+            "/song/url/v1",
+            mapOf("id" to realId, "level" to songLevel.value)
+        )
+        return if (officialResult.hasPlayableUrl()) officialResult else tryUnblockUrl(realId)
     }
 
     private data class ParsedSongId(
@@ -103,9 +89,6 @@ object PlayerApi {
         if (time in 1..60_000) return false
         return true
     }
-
-    private suspend fun tryApiEnhancedMatchUrl(songId: String): Result<SongUrlResponse> =
-        tryMatchedSources("${API_BASE_URL.trimEnd('/')}/song/url/match", songId)
 
     private suspend fun tryUnblockUrl(songId: String): Result<SongUrlResponse> =
         tryMatchedSources("${UNBLOCK_BASE_URL.trimEnd('/')}/match", songId)

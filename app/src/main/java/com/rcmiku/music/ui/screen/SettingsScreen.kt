@@ -51,7 +51,6 @@ import com.rcmiku.music.R
 import com.rcmiku.music.constants.SettingItemCorner
 import com.rcmiku.music.constants.SettingItemHeight
 import com.rcmiku.music.constants.SettingItemSubCorner
-import com.rcmiku.music.constants.apiBaseUrlKey
 import com.rcmiku.music.constants.audioCacheMaxSizeKey
 import com.rcmiku.music.constants.audioQualityKey
 import com.rcmiku.music.constants.autoSkipNextOnErrorKey
@@ -102,7 +101,6 @@ fun SettingsScreen(navController: NavHostController) {
     var themeSeed by rememberEnumPreference(themeSeedColorKey, defaultValue = AppThemeSeed.PURPLE)
     var autoSkipNextOnError by rememberPreference(autoSkipNextOnErrorKey, false)
     var ncmCookie by rememberPreference(ncmCookieKey, "")
-    var apiBaseUrl by rememberPreference(apiBaseUrlKey, "https://netease.depresskid.top")
     var unblockBaseUrl by rememberPreference(unblockBaseUrlKey, "https://unlock.depresskid.top")
     var audioCacheMaxSize by rememberPreference(
         audioCacheMaxSizeKey,
@@ -112,7 +110,6 @@ fun SettingsScreen(navController: NavHostController) {
 
     var showQualityDialog by remember { mutableStateOf(false) }
     var showThemeSeedDialog by remember { mutableStateOf(false) }
-    var showApiUrlDialog by remember { mutableStateOf(false) }
     var showUnblockUrlDialog by remember { mutableStateOf(false) }
     var showCacheDialog by remember { mutableStateOf(false) }
     var logout by rememberSaveable { mutableStateOf(false) }
@@ -202,12 +199,6 @@ fun SettingsScreen(navController: NavHostController) {
                 Spacer(Modifier.width(12.dp))
             },
             onClick = { autoSkipNextOnError = !autoSkipNextOnError }
-        ),
-        SettingItemData(
-            title = stringResource(R.string.api_server),
-            subtitle = apiBaseUrl,
-            imageVector = Dns,
-            onClick = { showApiUrlDialog = true }
         ),
         SettingItemData(
             title = stringResource(R.string.unblock_server),
@@ -377,16 +368,6 @@ fun SettingsScreen(navController: NavHostController) {
                 logout = false
             },
             dialogTitle = stringResource(R.string.logout),
-        )
-    }
-
-    if (showApiUrlDialog) {
-        UrlEditDialog(
-            title = stringResource(R.string.api_server),
-            currentUrl = apiBaseUrl,
-            defaultUrl = "https://netease.depresskid.top",
-            onDismiss = { showApiUrlDialog = false },
-            onConfirm = { apiBaseUrl = it }
         )
     }
 

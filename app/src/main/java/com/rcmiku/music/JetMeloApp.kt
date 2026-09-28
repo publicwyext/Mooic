@@ -10,14 +10,12 @@ import coil3.disk.directory
 import coil3.memory.MemoryCache
 import coil3.request.CachePolicy
 import coil3.request.crossfade
-import com.rcmiku.music.constants.apiBaseUrlKey
 import com.rcmiku.music.constants.ncmCookieKey
 import com.rcmiku.music.constants.unblockBaseUrlKey
 import com.rcmiku.music.playback.PlayerController
 import com.rcmiku.music.utils.SongListUtil
 import com.rcmiku.music.utils.UserAgentUtil
 import com.rcmiku.music.utils.dataStore
-import com.rcmiku.ncmapi.api.API_BASE_URL
 import com.rcmiku.ncmapi.api.UNBLOCK_BASE_URL
 import com.rcmiku.ncmapi.utils.CookieKeys
 import com.rcmiku.ncmapi.utils.CookieProvider
@@ -64,11 +62,10 @@ class JetMeloApp : Application(), SingletonImageLoader.Factory {
         applicationScope.launch {
             dataStore.data
                 .map { prefs ->
-                    prefs[apiBaseUrlKey] to prefs[unblockBaseUrlKey]
+                    prefs[unblockBaseUrlKey]
                 }
                 .distinctUntilChanged()
-                .collect { (apiUrl, unblockUrl) ->
-                    if (!apiUrl.isNullOrEmpty()) API_BASE_URL = apiUrl
+                .collect { unblockUrl ->
                     if (!unblockUrl.isNullOrEmpty()) UNBLOCK_BASE_URL = unblockUrl
                 }
         }
