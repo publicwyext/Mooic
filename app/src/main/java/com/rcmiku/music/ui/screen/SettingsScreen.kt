@@ -3,6 +3,7 @@ package com.rcmiku.music.ui.screen
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
+import android.content.Intent
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.combinedClickable
@@ -29,9 +30,11 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -41,16 +44,18 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import coil3.decode.ImageSource
+import androidx.media3.common.util.UnstableApi
 import com.rcmiku.music.R
 import com.rcmiku.music.constants.SettingItemCorner
 import com.rcmiku.music.constants.SettingItemHeight
 import com.rcmiku.music.constants.SettingItemSubCorner
-import com.rcmiku.music.constants.apiBaseUrlKey
+import com.rcmiku.music.constants.audioCacheMaxSizeKey
 import com.rcmiku.music.constants.audioQualityKey
 import com.rcmiku.music.constants.autoSkipNextOnErrorKey
 import com.rcmiku.music.constants.dynamicThemeColorKey
@@ -61,9 +66,12 @@ import com.rcmiku.music.constants.unblockBaseUrlKey
 import com.rcmiku.music.constants.use40DpIconKey
 import com.rcmiku.music.constants.watchMode
 import com.rcmiku.music.ui.components.Dialog
+import com.rcmiku.music.ui.components.CacheManagementDialog
 import com.rcmiku.music.ui.components.SongQualityDialog
 import com.rcmiku.music.ui.components.ThemeSeedDialog
 import com.rcmiku.music.ui.components.UrlEditDialog
+import com.rcmiku.music.ui.components.formatCacheSize
+import com.rcmiku.music.ui.icons.AudioLines
 import com.rcmiku.music.ui.icons.Dns
 import com.rcmiku.music.ui.icons.Github
 import com.rcmiku.music.ui.icons.GraphicEq
@@ -76,16 +84,23 @@ import com.rcmiku.music.ui.icons.VipUser
 import com.rcmiku.music.ui.icons.Watch
 import com.rcmiku.music.ui.navigation.Screen
 import com.rcmiku.music.ui.theme.AppThemeSeed
+import com.rcmiku.music.playback.AudioCache
 import com.rcmiku.music.utils.getItemShape
 import com.rcmiku.music.utils.rememberEnumPreference
 import com.rcmiku.music.utils.rememberPreference
 import com.rcmiku.ncmapi.api.player.SongLevel
+import com.rcmiku.ncmapi.utils.DebugLog
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
+@androidx.annotation.OptIn(UnstableApi::class)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(navController: NavHostController) {
     val uriHandler = LocalUriHandler.current
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
 
     var use40DpIcon by rememberPreference(use40DpIconKey, false)
     var audioQuality by rememberEnumPreference(audioQualityKey, defaultValue = SongLevel.STANDARD)
@@ -95,13 +110,17 @@ fun SettingsScreen(navController: NavHostController) {
     var theme by rememberPreference(theme, 2)
     var watchMode by rememberPreference(watchMode, isWatch(context))
     var ncmCookie by rememberPreference(ncmCookieKey, "")
-    var apiBaseUrl by rememberPreference(apiBaseUrlKey, "https://ncm-api.prod.gbclstudio.cn")
     var unblockBaseUrl by rememberPreference(unblockBaseUrlKey, "https://unlock.depresskid.top")
+    var audioCacheMaxSize by rememberPreference(
+        audioCacheMaxSizeKey,
+        AudioCache.DEFAULT_MAX_SIZE_BYTES,
+    )
+    var audioCacheSpace by remember { mutableStateOf(0L) }
 
     var showQualityDialog by remember { mutableStateOf(false) }
     var showThemeSeedDialog by remember { mutableStateOf(false) }
-    var showApiUrlDialog by remember { mutableStateOf(false) }
     var showUnblockUrlDialog by remember { mutableStateOf(false) }
+    var showCacheDialog by remember { mutableStateOf(false) }
     var logout by rememberSaveable { mutableStateOf(false) }
 
     val dynamicColorAvailable = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
@@ -110,6 +129,16 @@ fun SettingsScreen(navController: NavHostController) {
         useDynamicThemeColor && dynamicColorAvailable -> "\u58c1\u7eb8\u52a8\u6001\u53d6\u8272"
         useDynamicThemeColor -> "\u58c1\u7eb8\u52a8\u6001\u53d6\u8272 (\u5f53\u524d\u4e0d\u53ef\u7528)"
         else -> "\u4e3b\u9898\u8272: ${themeSeed.label}"
+    }
+
+    suspend fun refreshCacheSpace() {
+        audioCacheSpace = withContext(Dispatchers.IO) {
+            AudioCache.cacheSpace(context.applicationContext)
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        refreshCacheSpace()
     }
 
     val baseSettingItems = listOf(
@@ -168,6 +197,19 @@ fun SettingsScreen(navController: NavHostController) {
             onClick = { showQualityDialog = true }
         ),
         SettingItemData(
+            title = stringResource(R.string.cache_management),
+            subtitle = stringResource(
+                R.string.cache_summary,
+                formatCacheSize(audioCacheSpace),
+                formatCacheSize(audioCacheMaxSize),
+            ),
+            imageVector = AudioLines,
+            onClick = {
+                showCacheDialog = true
+                coroutineScope.launch { refreshCacheSpace() }
+            },
+        ),
+        SettingItemData(
             title = stringResource(R.string.auto_skip),
             imageVector = SkipNext,
             trailingContent = {
@@ -178,12 +220,6 @@ fun SettingsScreen(navController: NavHostController) {
                 Spacer(Modifier.width(12.dp))
             },
             onClick = { autoSkipNextOnError = !autoSkipNextOnError }
-        ),
-        SettingItemData(
-            title = stringResource(R.string.api_server),
-            subtitle = apiBaseUrl,
-            imageVector = Dns,
-            onClick = { showApiUrlDialog = true }
         ),
         SettingItemData(
             title = stringResource(R.string.unblock_server),
@@ -207,7 +243,22 @@ fun SettingsScreen(navController: NavHostController) {
         SettingItemData(
             title = stringResource(R.string.source_code),
             imageVector = Github,
-            onClick = { uriHandler.openUri("https://github.com/rcmiku/JetMelo") }
+            onClick = { uriHandler.openUri("https://github.com/kid-depress/Mooic") }
+        ),
+        SettingItemData(
+            title = stringResource(R.string.export_debug_log),
+            imageVector = Dns,
+            onClick = {
+                val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    putExtra(Intent.EXTRA_SUBJECT, context.getString(R.string.debug_log_subject))
+                    putExtra(
+                        Intent.EXTRA_TEXT,
+                        DebugLog.export().ifBlank { context.getString(R.string.no_debug_log) }
+                    )
+                }
+                context.startActivity(Intent.createChooser(shareIntent, null))
+            }
         )
     )
 
@@ -305,6 +356,31 @@ fun SettingsScreen(navController: NavHostController) {
         )
     }
 
+    if (showCacheDialog) {
+        CacheManagementDialog(
+            cacheSpaceBytes = audioCacheSpace,
+            currentMaxBytes = audioCacheMaxSize,
+            onMaxSizeSelected = { maxSizeBytes ->
+                audioCacheMaxSize = maxSizeBytes
+                coroutineScope.launch {
+                    withContext(Dispatchers.IO) {
+                        AudioCache.setMaxSize(context.applicationContext, maxSizeBytes)
+                    }
+                    refreshCacheSpace()
+                }
+            },
+            onClearCache = {
+                coroutineScope.launch {
+                    withContext(Dispatchers.IO) {
+                        AudioCache.clear(context.applicationContext)
+                    }
+                    refreshCacheSpace()
+                }
+            },
+            onDismiss = { showCacheDialog = false },
+        )
+    }
+
     if (logout) {
         Dialog(
             onConfirmation = {
@@ -315,16 +391,6 @@ fun SettingsScreen(navController: NavHostController) {
                 logout = false
             },
             dialogTitle = stringResource(R.string.logout),
-        )
-    }
-
-    if (showApiUrlDialog) {
-        UrlEditDialog(
-            title = stringResource(R.string.api_server),
-            currentUrl = apiBaseUrl,
-            defaultUrl = "https://ncm-api.prod.gbclstudio.cn",
-            onDismiss = { showApiUrlDialog = false },
-            onConfirm = { apiBaseUrl = it }
         )
     }
 
