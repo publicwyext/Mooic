@@ -163,7 +163,11 @@ object AccountApi {
         apiGet("/login/qr/create", mapOf("key" to key, "qrimg" to true, "timestamp" to System.currentTimeMillis()))
 
     suspend fun qrCheck(key: String): Result<QrCheckResponse> =
-        apiGet("/login/qr/check", mapOf("key" to key, "timestamp" to System.currentTimeMillis()))
+        apiGetWithCookie<QrCheckResponse>("/login/qr/check", mapOf("key" to key))
+            .map { result ->
+                val cookie = result.data.cookie?.takeIf { it.isNotBlank() } ?: result.cookie
+                result.data.copy(cookie = cookie)
+            }
 
     suspend fun sentCaptcha(phone: String, ctcode: String): Result<ApiCodeResponse> =
         apiGet("/captcha/sent", mapOf("phone" to phone, "ctcode" to ctcode))
