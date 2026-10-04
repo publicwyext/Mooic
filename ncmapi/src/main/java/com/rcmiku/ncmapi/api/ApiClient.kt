@@ -1,7 +1,5 @@
 package com.rcmiku.ncmapi.api
 
-import android.util.Log
-import com.rcmiku.ncmapi.model.ApiCodeResponse
 import com.rcmiku.ncmapi.utils.CookieKeys
 import com.rcmiku.ncmapi.utils.CookieProvider
 import com.rcmiku.ncmapi.utils.NeteaseClientConfig
@@ -19,10 +17,6 @@ import io.ktor.http.HttpMethod
 import io.ktor.http.contentType
 import io.ktor.http.encodeURLParameter
 import io.ktor.http.isSuccess
-import io.ktor.serialization.kotlinx.json.json
-import java.net.URLEncoder
-import java.util.UUID
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
@@ -31,6 +25,7 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonPrimitive
+import java.util.UUID
 
 var UNBLOCK_BASE_URL = "https://unlock.depresskid.top"
 
@@ -86,95 +81,6 @@ private fun route(path: String, p: Map<String, Any>): Route {
         "/user/playlist" -> weapi("/api/user/playlist", mapOf("uid" to required("uid"), "limit" to (p["limit"] ?: 30), "offset" to (p["offset"] ?: 0), "includeVideo" to true))
         "/user/record" -> weapi("/api/v1/play/record", mapOf("uid" to required("uid"), "type" to (p["type"] ?: 0)))
         else -> error("Unsupported NetEase route: $path")
-    }
-}
-
-data class ApiResponseWithCookie<T>(
-    val data: T,
-    val cookie: String
-)
-
-suspend inline fun <reified T> apiGetWithCookie(path: String, params: Map<String, Any> = emptyMap()): Result<ApiResponseWithCookie<T>> {
-    return try {
-        val response = apiClient.request("$API_BASE_URL$path") {
-            method = HttpMethod.Get
-            params.forEach { (key, value) ->
-                parameter(key, value)
-            }
-        }
-        if (response.status.isSuccess()) {
-            val headerCookies = response.headers.getAll("Set-Cookie").orEmpty()
-                .map { it.substringBefore(';').trim() }
-                .filter { it.contains('=') }
-            val body = response.bodyAsText()
-            val allCookies = if (headerCookies.isNotEmpty()) {
-                headerCookies.joinToString("; ")
-            } else {
-                extractBodyCookie(body)
-            }
-            try {
-                val result = Json {
-                    ignoreUnknownKeys = true
-                    isLenient = true
-                    coerceInputValues = true
-                }.decodeFromString<T>(body)
-                Result.success(ApiResponseWithCookie(data = result, cookie = allCookies))
-            } catch (e: Exception) {
-                Result.success(ApiResponseWithCookie(data = ApiCodeResponse(code = 200) as T, cookie = allCookies))
-            }
-        } else {
-            Result.failure(Exception("API error: ${response.status}"))
-        }
-    } catch (e: Exception) {
-        Result.failure(e)
-    }
-}
-
-@PublishedApi
-internal fun extractBodyCookie(body: String): String {
-    return try {
-        val element = Json {
-            ignoreUnknownKeys = true
-            isLenient = true
-            coerceInputValues = true
-        }.parseToJsonElement(body)
-        val cookie = (element as? JsonObject)?.get("cookie")
-        if (cookie is JsonPrimitive && cookie.content.isNotBlank()) {
-            cookie.jsonPrimitive.content
-        } else {
-            ""
-        }
-    } catch (e: Exception) {
-        ""
-    }
-}
-
-@PublishedApi
-internal fun encodeForm(value: Any): String =
-    URLEncoder.encode(value.toString(), "UTF-8")
-
-suspend inline fun <reified T> apiPost(path: String, body: Map<String, Any> = emptyMap()): Result<T> {
-    return runCatching {
-        val response = apiClient.request("$API_BASE_URL$path") {
-            method = HttpMethod.Post
-            contentType(ContentType.Application.FormUrlEncoded)
-            parameter("timestamp", System.currentTimeMillis())
-            parameter("_", System.nanoTime())
-            parameter("randomCNIP", true)
-            val finalBody = body.toMutableMap().apply {
-                CookieProvider.getCookieMap()[CookieKeys.CSRF]
-                    ?.takeIf { it.isNotEmpty() }
-                    ?.let { put("csrf_token", it) }
-            }
-            setBody(
-                finalBody.entries.joinToString("&") { (key, value) ->
-                    "${key.encodeURLParameter()}=${value.toString().encodeURLParameter()}"
-                }
-            )
-        }
-        val responseBody = response.bodyAsText()
-        response.requireSuccess(responseBody)
-        apiJson.decodeFromString<T>(responseBody)
     }
 }
 
@@ -274,11 +180,5 @@ suspend inline fun <reified T> apiPost(path: String, body: Map<String, Any> = em
 
 @PublishedApi
 internal fun HttpResponse.requireSuccess(responseBody: String) {
-    if (!status.isSuccess()) {
-        val description = status.description
-            .takeUnless { it.isBlank() || it.equals("unknown", ignoreCase = true) }
-            ?.let { " $it" }
-            .orEmpty()
-        throw Exception("HTTP ${status.value}$description: ${responseBody.take(500)}")
-    }
+    if (!status.isSuccess()) throw Exception("HTTP ${status.value} ${status.description}: ${responseBody.take(500)}")
 }
